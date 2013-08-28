@@ -3,6 +3,7 @@
 //   2012 Pedro Pombeiro
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
+
 namespace ReSharper.AutoFormatOnSave
 {
     using System;
