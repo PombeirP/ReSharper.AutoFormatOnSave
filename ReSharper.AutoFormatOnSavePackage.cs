@@ -39,30 +39,31 @@ namespace ReSharper.AutoFormatOnSave
     [ProvideAutoLoad(UIContextGuids.SolutionExists)]
     public sealed class ReSharper_AutoFormatOnSavePackage : Package
     {
-        #region Constants
 
-        /// <summary>
-        /// The name for the ReSharper silent code cleanup command.
-        /// </summary>
-        private const string ReSharperSilentCleanupCodeCommandName = "ReSharper_SilentCleanupCode";
+		#region Static Fields
 
-        #endregion
+		/// <summary>
+		/// The name for the ReSharper silent code cleanup command.
+		/// </summary>
+		private static readonly string[] ReSharperSilentCleanupCodeCommandsNames = new string[] { "ReSharper_SilentCleanupCode", "ReSharper.ReSharper_SilentCleanupCode" };
 
-        #region Static Fields
+		/// <summary>
+		/// The allowed file extensions for code cleanup.
+		/// </summary>
+		private static readonly string[] AllowedFileExtensions = new[] { ".cs", ".xaml", ".vb", ".js", ".ts", ".css", ".html", ".xml" };
 
-        /// <summary>
-        /// The allowed file extensions for code cleanup.
-        /// </summary>
-        private static readonly string[] AllowedFileExtensions = new[] { ".cs", ".xaml", ".vb", ".js", ".ts", ".css", ".html", ".xml" };
+		#endregion
 
-        #endregion
+		#region Fields
 
-        #region Fields
-
-        /// <summary>
-        /// The dictionary of documents which will be reformatted mapped to the timestamp when they were last reformatted.
-        /// </summary>
-        private readonly Dictionary<Document, DateTime> documentsToReformatDictionary = new Dictionary<Document, DateTime>();
+		/// <summary>
+		/// The resharper command to use
+		/// </summary>
+		private String resharperCommandToUse;
+		/// <summary>
+		/// The dictionary of documents which will be reformatted mapped to the timestamp when they were last reformatted.
+		/// </summary>
+		private readonly Dictionary<Document, DateTime> documentsToReformatDictionary = new Dictionary<Document, DateTime>();
 
         /// <summary>
         /// A timer which runs background checks (mainly to check whether all saves have completed).
@@ -190,12 +191,14 @@ namespace ReSharper.AutoFormatOnSave
         /// </summary>
         private void InitializeAddIn()
         {
-            if (this.dte.Commands.Cast<Command>().All(x => x.Name != ReSharperSilentCleanupCodeCommandName))
+	        Command[] availableResharperCleanupCommands = this.dte.Commands.Cast<Command>().Where(x => ReSharperSilentCleanupCodeCommandsNames.Contains(x.Name)).ToArray();
+
+	        if (!availableResharperCleanupCommands.Any())
             {
                 return;
             }
-
-            var events2 = this.dte.Events;
+			this.resharperCommandToUse = availableResharperCleanupCommands.First().Name;
+	        var events2 = this.dte.Events;
 
             this.DisconnectFromVsEvents();
 
@@ -358,7 +361,7 @@ namespace ReSharper.AutoFormatOnSave
                     try
                     {
                         // so that we can run the ReSharper command on it.
-                        this.dte.ExecuteCommand(ReSharperSilentCleanupCodeCommandName);
+                        this.dte.ExecuteCommand(this.resharperCommandToUse);
                     }
                     catch (Exception)
                     {
